@@ -119,6 +119,7 @@ function Dashboard() {
     () => new Set(jobs.map((job) => job.company.toLowerCase())).size,
     [jobs],
   );
+  const sourceCount = useMemo(() => new Set(jobs.map((job) => job.source)).size, [jobs]);
 
   const addKeyword = () => {
     const value = draft.trim();
