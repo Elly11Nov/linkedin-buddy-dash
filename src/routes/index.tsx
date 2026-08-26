@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { getJobs } from "../lib/jobs.functions";
 import { getLinkedInProfile } from "../lib/linkedin.functions";
+import { NetworkPanel } from "../components/NetworkPanel";
 import { formatRelativeTime, linkedInJobSearchUrl } from "../lib/format";
+
 import { cn } from "../lib/utils";
 import type { Job } from "../lib/jobs.types";
 
@@ -266,6 +268,10 @@ function Dashboard() {
             </form>
           </div>
         </section>
+
+        <NetworkPanel />
+
+
 
         {/* Stats */}
         <section aria-label="Stats" className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
