@@ -193,8 +193,8 @@ function Dashboard() {
             </h1>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
               Scanning live job boards for contract & freelance roles in CH, FR, IT, FI, SE, DK and
-              the UK — plus permanent roles in Switzerland. Fresh postings from the last 48 hours
-              are flagged as new.
+              the UK — plus permanent roles in Switzerland. Only ads posted within the last 14 days
+              are shown; fresh postings from the last 48 hours are flagged as new.
             </p>
           </div>
           <button
