@@ -4,12 +4,29 @@ export interface FieldSlice {
   percentage: number;
 }
 
+export interface Contact {
+  name: string;
+  position: string;
+  company: string;
+  field: string;
+  url?: string;
+  connectedOn?: string;
+}
+
 export interface NetworkSummary {
   total: number;
   classified: number;
   slices: FieldSlice[];
   importedAt: string;
+  contacts?: Contact[];
 }
+
+export interface RankedContact extends Contact {
+  score: number;
+  reason: string;
+  askSuggestion: string;
+}
+
 
 const FIELDS: { field: string; patterns: string[] }[] = [
   {
