@@ -1,6 +1,7 @@
 import type { EmploymentType, Job } from "./jobs.types";
 
 const NEW_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 // ---------- Eligibility rules (Elena's search criteria) ----------
 // Contract/freelance roles: CH, FR, IT, FI, SE, DK, UK (or remote open to them).
