@@ -1,6 +1,7 @@
 import type { EmploymentType, Job } from "./jobs.types";
 
 const NEW_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 // ---------- Eligibility rules (Elena's search criteria) ----------
 // Contract/freelance roles: CH, FR, IT, FI, SE, DK, UK (or remote open to them).
@@ -141,6 +142,11 @@ async function fetchJson(url: string): Promise<unknown> {
 function isFresh(publishedAt: string): boolean {
   const time = new Date(publishedAt).getTime();
   return Number.isFinite(time) && Date.now() - time < NEW_THRESHOLD_MS;
+}
+
+function isWithinTwoWeeks(publishedAt: string): boolean {
+  const time = new Date(publishedAt).getTime();
+  return Number.isFinite(time) && Date.now() - time < TWO_WEEKS_MS;
 }
 
 // ---------- RemoteOK ----------
@@ -397,7 +403,7 @@ export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
   const eligible: Job[] = [];
   for (const job of unique) {
     const classification = classifyJob(job.title, job.location, job.tags);
-    if (!classification.eligible) continue;
+    if (!classification.eligible || !isWithinTwoWeeks(job.publishedAt)) continue;
     eligible.push({
       ...job,
       employmentType: classification.employmentType,
