@@ -286,7 +286,8 @@ export function rankRecruiters(contacts: Contact[]): RankedRecruiter[] {
   return recruiters
     .map((contact) => {
       const text = ` ${contact.position.toLowerCase()} ${contact.company.toLowerCase()} `;
-      const isAgency = AGENCY_PATTERNS.some((p) => text.includes(p));
+      const companyText = ` ${contact.company.toLowerCase()} `;
+      const isAgency = AGENCY_PATTERNS.some((p) => companyText.includes(p));
       const contractFriendly = CONTRACT_SIGNALS.some((p) => text.includes(p));
       const fieldAligned = FIELD_SIGNALS.some((p) => text.includes(p));
       const senior = LEADER_PATTERNS.some((p) => ` ${contact.position.toLowerCase()} `.includes(p));
