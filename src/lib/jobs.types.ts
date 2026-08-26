@@ -1,3 +1,5 @@
+export type EmploymentType = "contract" | "permanent" | "unspecified";
+
 export interface Job {
   id: string;
   title: string;
@@ -9,4 +11,7 @@ export interface Job {
   publishedAt: string; // ISO date
   matchedKeywords: string[];
   isNew: boolean; // published within the last 48 hours
+  employmentType: EmploymentType;
+  // Detected region label, e.g. "Switzerland", "UK", "EMEA", "Worldwide".
+  region: string | null;
 }

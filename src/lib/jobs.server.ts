@@ -1,6 +1,93 @@
-import type { Job } from "./jobs.types";
+import type { EmploymentType, Job } from "./jobs.types";
 
 const NEW_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+
+// ---------- Eligibility rules (Elena's search criteria) ----------
+// Contract/freelance roles: CH, FR, IT, FI, SE, DK, UK (or remote open to them).
+// Permanent roles: Switzerland only (worldwide-remote counts, it hires in CH).
+
+const CONTRACT_SIGNALS = [
+  /\bcontract(or|ing)?\b/i,
+  /\bfreelanc/i,
+  /\binterim\b/i,
+  /\btemporary\b/i,
+  /\bfixed[- ]term\b/i,
+  /\bcdd\b/i,
+];
+
+const PERMANENT_SIGNALS = [
+  /\bpermanent\b/i,
+  /\bfull[- ]?time\b/i,
+  /\bcdi\b/i,
+  /unbefristet/i,
+  /festanstellung/i,
+  /tempo indeterminato/i,
+];
+
+const REGION_PATTERNS: Array<{ label: string; pattern: RegExp; target: boolean }> = [
+  {
+    label: "Switzerland",
+    pattern:
+      /switzerland|swiss|zurich|zürich|geneva|genève|genf|basel|bern|lausanne|lugano|\bch\b/i,
+    target: true,
+  },
+  { label: "France", pattern: /france|paris|lyon|marseille|\bfr\b/i, target: true },
+  { label: "Italy", pattern: /italy|italia|milan|milano|roma\b|rome|turin|torino|\bit\b/i, target: true },
+  { label: "Finland", pattern: /finland|helsinki|tampere|\bfi\b/i, target: true },
+  {
+    label: "Sweden",
+    pattern: /sweden|stockholm|gothenburg|göteborg|malmö|\bse\b/i,
+    target: true,
+  },
+  { label: "Denmark", pattern: /denmark|copenhagen|aarhus|københavn|\bdk\b/i, target: true },
+  {
+    label: "UK",
+    pattern:
+      /united kingdom|\buk\b|\bu\.k\.\b|london|england|britain|manchester|edinburgh|bristol|leeds/i,
+    target: true,
+  },
+];
+
+const WORLDWIDE_PATTERN =
+  /worldwide|anywhere|global|\bemea\b|\beurope(an)?\b|\beu\b|remote[- ]first|work from anywhere/i;
+
+interface Classification {
+  employmentType: EmploymentType;
+  region: string | null;
+  eligible: boolean;
+}
+
+function classifyJob(title: string, location: string, tags: string[]): Classification {
+  const haystack = [title, location, ...tags].join(" ");
+
+  const isContract = CONTRACT_SIGNALS.some((pattern) => pattern.test(haystack));
+  const isPermanent = PERMANENT_SIGNALS.some((pattern) => pattern.test(haystack));
+  const employmentType: EmploymentType = isContract
+    ? "contract"
+    : isPermanent
+      ? "permanent"
+      : "unspecified";
+
+  const locationHaystack = [location, ...tags].join(" ");
+  const regionHit = REGION_PATTERNS.find(({ pattern }) => pattern.test(locationHaystack));
+  const worldwide = WORLDWIDE_PATTERN.test(locationHaystack);
+  const region = regionHit?.label ?? (worldwide ? "Worldwide / EMEA" : null);
+
+  // Permanent roles: Switzerland only (worldwide-remote hires in CH too).
+  if (employmentType === "permanent") {
+    return {
+      employmentType,
+      region,
+      eligible: regionHit?.label === "Switzerland" || worldwide,
+    };
+  }
+  // Contract/freelance and unspecified: target countries or remote open to them.
+  return {
+    employmentType,
+    region,
+    eligible: Boolean(regionHit?.target) || worldwide,
+  };
+}
 
 // Extra search terms for well-known watchlist keywords so phrasing variants
 // ("Technical Writer" vs "Technical Writing") still match.
