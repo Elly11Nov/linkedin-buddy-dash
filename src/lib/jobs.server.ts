@@ -144,6 +144,11 @@ function isFresh(publishedAt: string): boolean {
   return Number.isFinite(time) && Date.now() - time < NEW_THRESHOLD_MS;
 }
 
+function isWithinTwoWeeks(publishedAt: string): boolean {
+  const time = new Date(publishedAt).getTime();
+  return Number.isFinite(time) && Date.now() - time < TWO_WEEKS_MS;
+}
+
 // ---------- RemoteOK ----------
 
 interface RemoteOkEntry {
