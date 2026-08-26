@@ -144,6 +144,7 @@ export function NetworkPanel() {
         </div>
       )}
       <CompanyInsiders contacts={summary?.contacts} />
+      <RecruiterRank contacts={summary?.contacts} />
     </section>
   );
 }
