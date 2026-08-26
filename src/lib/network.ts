@@ -257,6 +257,75 @@ const HR_PATTERNS = ["human resources", "hr ", "people partner", "people & cultu
 const LEADER_PATTERNS = ["head of", "director", "vp ", "vice president", "chief", "lead ", "manager"];
 const TARGET_FIELDS = ["Technical Writing & Documentation", "Content & Copywriting", "Requirements & Business Analysis"];
 
+const AGENCY_PATTERNS = [
+  "consulting", "recruitment", "staffing", "search", "talent", "people", "workforce",
+  "solutions", "group", "partners", "associates", "resources", "hays", "adecco",
+  "randstad", "manpower", "robert walters", "michael page", "page personnel",
+  "robert half", "kelly services", "modis", "akko", "experis", "coople",
+];
+const CONTRACT_SIGNALS = ["contract", "freelance", "interim", "temporary", "temp ", "contracting"];
+const FIELD_SIGNALS = [
+  "content", "communication", "editorial", "copy", "marketing", "digital",
+  "technical", "documentation", "life science", "pharma", "engineering", "it ", "tech",
+];
+
+export interface RankedRecruiter extends Contact {
+  score: number;
+  kind: "agency" | "in-house";
+  reason: string;
+  askSuggestion: string;
+}
+
+/** Find recruiters / talent contacts in the network and rank by likely usefulness. */
+export function rankRecruiters(contacts: Contact[]): RankedRecruiter[] {
+  const recruiters = contacts.filter((contact) => {
+    const position = ` ${contact.position.toLowerCase()} `;
+    return RECRUITER_PATTERNS.some((p) => position.includes(p)) || HR_PATTERNS.some((p) => position.includes(p));
+  });
+
+  return recruiters
+    .map((contact) => {
+      const text = ` ${contact.position.toLowerCase()} ${contact.company.toLowerCase()} `;
+      const companyText = ` ${contact.company.toLowerCase()} `;
+      const isAgency = AGENCY_PATTERNS.some((p) => companyText.includes(p));
+      const contractFriendly = CONTRACT_SIGNALS.some((p) => text.includes(p));
+      const fieldAligned = FIELD_SIGNALS.some((p) => text.includes(p));
+      const senior = LEADER_PATTERNS.some((p) => ` ${contact.position.toLowerCase()} `.includes(p));
+
+      let score = 40;
+      if (isAgency) score += 25; // agencies place contractors — matches the contract goal
+      if (contractFriendly) score += 20;
+      if (fieldAligned) score += 20;
+      if (senior) score += 10;
+
+      const kind: "agency" | "in-house" = isAgency ? "agency" : "in-house";
+      let reason: string;
+      let askSuggestion: string;
+      if (isAgency && contractFriendly) {
+        reason = "Contract-focused agency recruiter — the fastest route to freelance/contract briefs.";
+        askSuggestion = "Send your CV and day rate; ask to be registered for technical writing / content contract briefs in CH/EU.";
+      } else if (isAgency) {
+        reason = "Agency recruiter — agencies hold most contract and freelance mandates.";
+        askSuggestion = "Ask which clients hire technical writers or content specialists on contract, and whether Swiss permanent roles are in scope.";
+      } else if (contractFriendly) {
+        reason = "Works on contract/temporary hiring — knows interim openings.";
+        askSuggestion = "Ask about interim or contract content/documentation needs at their company.";
+      } else if (fieldAligned) {
+        reason = "Recruits in a field adjacent to yours — relevant role pipeline.";
+        askSuggestion = "Ask whether they handle content, communications or documentation roles, or can refer you to a colleague who does.";
+      } else if (senior) {
+        reason = "Senior in talent/HR — good for process insight and referrals to the right recruiter.";
+        askSuggestion = "Ask who the right recruiter is for documentation/content roles and how their referral scheme works.";
+      } else {
+        reason = "In-house recruiter — direct line to their company's openings.";
+        askSuggestion = "Ask about technical writing, content or requirements roles at their company and the best way to apply.";
+      }
+
+      return { ...contact, score, kind, reason, askSuggestion };
+    })
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+}
+
 /** Find and rank connections at a company for a warm-intro / referral ask. */
 export function rankCompanyContacts(contacts: Contact[], companyQuery: string): RankedContact[] {
   const query = companyQuery.trim().toLowerCase();
