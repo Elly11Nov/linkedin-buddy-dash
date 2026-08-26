@@ -178,9 +178,10 @@ export function summarizeConnectionsCsv(csvText: string): NetworkSummary {
   const headerIndex = rows.findIndex((row) =>
     row.some((cell) => cell.trim().toLowerCase() === "first name"),
   );
-  const header = (headerIndex >= 0 ? rows[headerIndex] : rows[0]).map((cell) =>
+  const header = (rows[headerIndex >= 0 ? headerIndex : 0] ?? []).map((cell) =>
     cell.trim().toLowerCase(),
   );
+
   const positionIndex = header.findIndex((cell) => cell === "position" || cell === "title");
   const dataRows = rows.slice((headerIndex >= 0 ? headerIndex : 0) + 1);
 
