@@ -298,7 +298,7 @@ export function rankRecruiters(contacts: Contact[]): RankedRecruiter[] {
       if (fieldAligned) score += 20;
       if (senior) score += 10;
 
-      const kind = isAgency ? "agency" : "in-house";
+      const kind: "agency" | "in-house" = isAgency ? "agency" : "in-house";
       let reason: string;
       let askSuggestion: string;
       if (isAgency && contractFriendly) {
