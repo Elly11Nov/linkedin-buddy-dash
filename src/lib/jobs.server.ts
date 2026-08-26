@@ -45,7 +45,7 @@ async function fetchRemotive(keyword: string, keywords: string[]): Promise<Job[]
   )) as { jobs?: RemotiveJob[] };
 
   return (data.jobs ?? [])
-    .map((job) => {
+    .map((job): Job | null => {
       const searchable = `${job.title} ${job.category ?? ""} ${(job.tags ?? []).join(" ")}`;
       const matches = matchedKeywords(searchable, keywords);
       if (matches.length === 0) return null;
@@ -81,7 +81,7 @@ async function fetchArbeitnow(keywords: string[]): Promise<Job[]> {
   const data = (await fetchJson(ARBEITNOW_URL)) as { data?: ArbeitnowJob[] };
 
   return (data.data ?? [])
-    .map((job) => {
+    .map((job): Job | null => {
       const searchable = `${job.title} ${(job.tags ?? []).join(" ")} ${(job.job_types ?? []).join(" ")}`;
       const matches = matchedKeywords(searchable, keywords);
       if (matches.length === 0) return null;
