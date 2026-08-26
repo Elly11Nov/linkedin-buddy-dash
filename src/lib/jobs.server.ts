@@ -403,7 +403,7 @@ export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
   const eligible: Job[] = [];
   for (const job of unique) {
     const classification = classifyJob(job.title, job.location, job.tags);
-    if (!classification.eligible) continue;
+    if (!classification.eligible || !isWithinTwoWeeks(job.publishedAt)) continue;
     eligible.push({
       ...job,
       employmentType: classification.employmentType,
