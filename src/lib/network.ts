@@ -225,15 +225,19 @@ export function summarizeConnectionsCsv(csvText: string): NetworkSummary {
       .trim();
     const company = companyIndex >= 0 ? (row[companyIndex] ?? "").trim() : "";
     if (name || company) {
-      contacts.push({
+      const url = urlIndex >= 0 ? (row[urlIndex] ?? "").trim() : "";
+      const connectedOn = connectedIndex >= 0 ? (row[connectedIndex] ?? "").trim() : "";
+      const contact: Contact = {
         name: name || "(no name in export)",
         position: position.trim(),
         company,
         field,
-        url: urlIndex >= 0 ? (row[urlIndex] ?? "").trim() || undefined : undefined,
-        connectedOn: connectedIndex >= 0 ? (row[connectedIndex] ?? "").trim() || undefined : undefined,
-      });
+      };
+      if (url) contact.url = url;
+      if (connectedOn) contact.connectedOn = connectedOn;
+      contacts.push(contact);
     }
+
   }
 
   const total = dataRows.length;
