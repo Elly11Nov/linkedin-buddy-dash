@@ -4,7 +4,7 @@ export interface Job {
   company: string;
   location: string;
   url: string;
-  source: "Remotive" | "Arbeitnow";
+  source: "RemoteOK" | "Jobicy" | "Himalayas" | "Arbeitnow";
   tags: string[];
   publishedAt: string; // ISO date
   matchedKeywords: string[];

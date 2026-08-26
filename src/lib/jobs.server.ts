@@ -1,16 +1,44 @@
 import type { Job } from "./jobs.types";
 
-const REMOTIVE_URL = "https://remotive.com/api/remote-jobs";
+const REMOTEOK_URL = "https://remoteok.com/api";
+const JOBICY_URL = "https://jobicy.com/api/v2/remote-jobs?count=100";
+const HIMALAYAS_URL = "https://himalayas.app/jobs/api?limit=100";
 const ARBEITNOW_URL = "https://www.arbeitnow.com/api/job-board-api";
 const NEW_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+
+// Extra search terms for well-known watchlist keywords so phrasing variants
+// ("Technical Writer" vs "Technical Writing") still match.
+const ALIASES: Record<string, string[]> = {
+  "technical writer": ["technical writing", "tech writer", "technical author", "documentation writer"],
+  "content writer": ["copywriter", "content writing", "seo writer"],
+  "content specialist": ["content manager", "content lead"],
+  "content strategist": ["content strategy"],
+  documentation: ["technical documentation", "document specialist", "knowledge base"],
+  "requirements engineer": ["requirements engineering", "requirements analyst", "business analyst"],
+};
 
 function norm(value: string): string {
   return value.toLowerCase().trim();
 }
 
-function matchedKeywords(text: string, keywords: string[]): string[] {
-  const haystack = norm(text);
-  return keywords.filter((keyword) => haystack.includes(norm(keyword)));
+function termsFor(keyword: string): string[] {
+  return [norm(keyword), ...(ALIASES[norm(keyword)] ?? [])];
+}
+
+function matchedKeywords(
+  title: string,
+  extra: string,
+  keywords: string[],
+): string[] {
+  const hayTitle = norm(title);
+  const hayExtra = norm(extra);
+  return keywords.filter((keyword) => {
+    const terms = termsFor(keyword);
+    return (
+      terms.some((term) => hayTitle.includes(term)) ||
+      hayExtra.includes(norm(keyword))
+    );
+  });
 }
 
 async function fetchJson(url: string): Promise<unknown> {
@@ -28,44 +56,124 @@ function isFresh(publishedAt: string): boolean {
   return Number.isFinite(time) && Date.now() - time < NEW_THRESHOLD_MS;
 }
 
-interface RemotiveJob {
-  id: number;
-  url: string;
-  title: string;
-  company_name: string;
-  candidate_required_location: string;
-  publication_date: string;
+interface RemoteOkEntry {
+  position?: string;
+  company?: string;
+  location?: string;
+  url?: string;
   tags?: string[];
-  category?: string;
+  date?: string;
 }
 
-async function fetchRemotive(keyword: string, keywords: string[]): Promise<Job[]> {
-  const data = (await fetchJson(
-    `${REMOTIVE_URL}?search=${encodeURIComponent(keyword)}&limit=50`,
-  )) as { jobs?: RemotiveJob[] };
-
-  return (data.jobs ?? [])
-    .map((job): Job | null => {
-      const searchable = `${job.title} ${job.category ?? ""} ${(job.tags ?? []).join(" ")}`;
-      const matches = matchedKeywords(searchable, keywords);
+async function fetchRemoteOk(keywords: string[]): Promise<Job[]> {
+  const data = (await fetchJson(REMOTEOK_URL)) as RemoteOkEntry[];
+  return data
+    .filter((entry) => entry.position && entry.url)
+    .map((entry): Job | null => {
+      const matches = matchedKeywords(
+        entry.position!,
+        (entry.tags ?? []).join(" "),
+        keywords,
+      );
       if (matches.length === 0) return null;
+      const publishedAt = entry.date ?? new Date().toISOString();
       return {
-        id: `remotive-${job.id}`,
-        title: job.title,
-        company: job.company_name,
-        location: job.candidate_required_location || "Remote",
-        url: job.url,
-        source: "Remotive" as const,
-        tags: (job.tags ?? []).slice(0, 4),
-        publishedAt: job.publication_date,
+        id: `remoteok-${entry.url}`,
+        title: entry.position!,
+        company: entry.company ?? "Unknown company",
+        location: entry.location?.trim() || "Remote",
+        url: entry.url!,
+        source: "RemoteOK",
+        tags: (entry.tags ?? []).slice(0, 4),
+        publishedAt,
         matchedKeywords: matches,
-        isNew: isFresh(job.publication_date),
+        isNew: isFresh(publishedAt),
       };
     })
     .filter((job): job is Job => job !== null);
 }
 
-interface ArbeitnowJob {
+interface JobicyEntry {
+  id?: number;
+  jobTitle?: string;
+  companyName?: string;
+  jobGeo?: string;
+  url?: string;
+  jobIndustry?: string[];
+  jobType?: string[];
+  pubDate?: string;
+}
+
+async function fetchJobicy(keywords: string[]): Promise<Job[]> {
+  const data = (await fetchJson(JOBICY_URL)) as { jobs?: JobicyEntry[] };
+  return (data.jobs ?? [])
+    .map((entry): Job | null => {
+      if (!entry.jobTitle || !entry.url) return null;
+      const matches = matchedKeywords(
+        entry.jobTitle,
+        [...(entry.jobIndustry ?? []), ...(entry.jobType ?? [])].join(" "),
+        keywords,
+      );
+      if (matches.length === 0) return null;
+      const publishedAt = entry.pubDate ?? new Date().toISOString();
+      return {
+        id: `jobicy-${entry.id ?? entry.url}`,
+        title: entry.jobTitle,
+        company: entry.companyName ?? "Unknown company",
+        location: entry.jobGeo || "Remote",
+        url: entry.url,
+        source: "Jobicy",
+        tags: (entry.jobIndustry ?? []).slice(0, 4),
+        publishedAt,
+        matchedKeywords: matches,
+        isNew: isFresh(publishedAt),
+      };
+    })
+    .filter((job): job is Job => job !== null);
+}
+
+interface HimalayasEntry {
+  guid?: string;
+  title?: string;
+  companyName?: string;
+  applicationLink?: string;
+  categories?: string[];
+  locationRestrictions?: string[];
+  pubDate?: string;
+}
+
+async function fetchHimalayas(keywords: string[]): Promise<Job[]> {
+  const data = (await fetchJson(HIMALAYAS_URL)) as { jobs?: HimalayasEntry[] };
+  return (data.jobs ?? [])
+    .map((entry): Job | null => {
+      if (!entry.title || !entry.guid) return null;
+      const matches = matchedKeywords(
+        entry.title,
+        (entry.categories ?? []).join(" "),
+        keywords,
+      );
+      if (matches.length === 0) return null;
+      const publishedAt = entry.pubDate ?? new Date().toISOString();
+      const restrictions = (entry.locationRestrictions ?? []).filter(
+        (r) => r && r.toLowerCase() !== "anywhere in the world",
+      );
+      return {
+        id: `himalayas-${entry.guid}`,
+        title: entry.title,
+        company: entry.companyName ?? "Unknown company",
+        location: restrictions.length > 0 ? restrictions.slice(0, 2).join(" / ") : "Remote",
+        url: entry.applicationLink ?? entry.guid,
+        source: "Himalayas",
+        tags: (entry.categories ?? []).slice(0, 4),
+        publishedAt,
+        matchedKeywords: matches,
+        isNew: isFresh(publishedAt),
+      };
+    })
+    .filter((job): job is Job => job !== null);
+}
+
+interface ArbeitnowEntry {
   slug: string;
   title: string;
   company_name: string;
@@ -78,22 +186,24 @@ interface ArbeitnowJob {
 }
 
 async function fetchArbeitnow(keywords: string[]): Promise<Job[]> {
-  const data = (await fetchJson(ARBEITNOW_URL)) as { data?: ArbeitnowJob[] };
-
+  const data = (await fetchJson(ARBEITNOW_URL)) as { data?: ArbeitnowEntry[] };
   return (data.data ?? [])
-    .map((job): Job | null => {
-      const searchable = `${job.title} ${(job.tags ?? []).join(" ")} ${(job.job_types ?? []).join(" ")}`;
-      const matches = matchedKeywords(searchable, keywords);
+    .map((entry): Job | null => {
+      const matches = matchedKeywords(
+        entry.title,
+        [...(entry.tags ?? []), ...(entry.job_types ?? [])].join(" "),
+        keywords,
+      );
       if (matches.length === 0) return null;
-      const publishedAt = new Date(job.created_at * 1000).toISOString();
+      const publishedAt = new Date(entry.created_at * 1000).toISOString();
       return {
-        id: `arbeitnow-${job.slug}`,
-        title: job.title,
-        company: job.company_name,
-        location: job.remote ? `${job.location} (Remote)` : job.location,
-        url: job.url,
-        source: "Arbeitnow" as const,
-        tags: (job.tags ?? []).slice(0, 4),
+        id: `arbeitnow-${entry.slug}`,
+        title: entry.title,
+        company: entry.company_name,
+        location: entry.remote ? `${entry.location} (Remote)` : entry.location,
+        url: entry.url,
+        source: "Arbeitnow",
+        tags: (entry.tags ?? []).slice(0, 4),
         publishedAt,
         matchedKeywords: matches,
         isNew: isFresh(publishedAt),
@@ -104,7 +214,9 @@ async function fetchArbeitnow(keywords: string[]): Promise<Job[]> {
 
 export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
   const settled = await Promise.allSettled([
-    ...keywords.map((keyword) => fetchRemotive(keyword, keywords)),
+    fetchRemoteOk(keywords),
+    fetchJobicy(keywords),
+    fetchHimalayas(keywords),
     fetchArbeitnow(keywords),
   ]);
 
@@ -130,5 +242,5 @@ export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
 
-  return unique.slice(0, 80);
+  return unique.slice(0, 120);
 }

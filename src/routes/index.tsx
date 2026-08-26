@@ -270,7 +270,7 @@ function Dashboard() {
           <StatCard icon={Briefcase} label="Open matches" value={jobs.length} />
           <StatCard icon={Sparkles} label="New in 48h" value={newCount} highlight />
           <StatCard icon={Building2} label="Companies" value={companyCount} />
-          <StatCard icon={Radio} label="Sources" value={2} />
+          <StatCard icon={Radio} label="Sources" value={sourceCount} />
         </section>
 
         {/* Filter tabs */}
