@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Users, Upload, Trash2, Info } from "lucide-react";
 import { summarizeConnectionsCsv, type NetworkSummary } from "../lib/network";
+import { CompanyInsiders } from "./CompanyInsiders";
 import { cn } from "../lib/utils";
 
 const STORAGE_KEY = "job-radar.network";
@@ -141,6 +142,7 @@ export function NetworkPanel() {
           </p>
         </div>
       )}
+      <CompanyInsiders contacts={summary?.contacts} />
     </section>
   );
 }

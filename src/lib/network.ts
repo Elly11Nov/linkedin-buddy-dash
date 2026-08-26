@@ -4,12 +4,29 @@ export interface FieldSlice {
   percentage: number;
 }
 
+export interface Contact {
+  name: string;
+  position: string;
+  company: string;
+  field: string;
+  url?: string;
+  connectedOn?: string;
+}
+
 export interface NetworkSummary {
   total: number;
   classified: number;
   slices: FieldSlice[];
   importedAt: string;
+  contacts?: Contact[];
 }
+
+export interface RankedContact extends Contact {
+  score: number;
+  reason: string;
+  askSuggestion: string;
+}
+
 
 const FIELDS: { field: string; patterns: string[] }[] = [
   {
@@ -183,9 +200,15 @@ export function summarizeConnectionsCsv(csvText: string): NetworkSummary {
   );
 
   const positionIndex = header.findIndex((cell) => cell === "position" || cell === "title");
+  const companyIndex = header.findIndex((cell) => cell === "company" || cell === "organization");
+  const firstNameIndex = header.findIndex((cell) => cell === "first name");
+  const lastNameIndex = header.findIndex((cell) => cell === "last name");
+  const urlIndex = header.findIndex((cell) => cell === "url" || cell === "profile url");
+  const connectedIndex = header.findIndex((cell) => cell === "connected on");
   const dataRows = rows.slice((headerIndex >= 0 ? headerIndex : 0) + 1);
 
   const counts = new Map<string, number>();
+  const contacts: Contact[] = [];
   let classified = 0;
 
   for (const row of dataRows) {
@@ -193,6 +216,28 @@ export function summarizeConnectionsCsv(csvText: string): NetworkSummary {
     const field = classifyPosition(position) ?? "Unknown";
     if (field !== "Unknown") classified += 1;
     counts.set(field, (counts.get(field) ?? 0) + 1);
+
+    const name = [
+      firstNameIndex >= 0 ? (row[firstNameIndex] ?? "") : "",
+      lastNameIndex >= 0 ? (row[lastNameIndex] ?? "") : "",
+    ]
+      .join(" ")
+      .trim();
+    const company = companyIndex >= 0 ? (row[companyIndex] ?? "").trim() : "";
+    if (name || company) {
+      const url = urlIndex >= 0 ? (row[urlIndex] ?? "").trim() : "";
+      const connectedOn = connectedIndex >= 0 ? (row[connectedIndex] ?? "").trim() : "";
+      const contact: Contact = {
+        name: name || "(no name in export)",
+        position: position.trim(),
+        company,
+        field,
+      };
+      if (url) contact.url = url;
+      if (connectedOn) contact.connectedOn = connectedOn;
+      contacts.push(contact);
+    }
+
   }
 
   const total = dataRows.length;
@@ -204,5 +249,61 @@ export function summarizeConnectionsCsv(csvText: string): NetworkSummary {
     }))
     .sort((a, b) => b.count - a.count);
 
-  return { total, classified, slices, importedAt: new Date().toISOString() };
+  return { total, classified, slices, importedAt: new Date().toISOString(), contacts };
 }
+
+const RECRUITER_PATTERNS = ["recruit", "talent acquisition", "talent partner", "sourcer", "hiring"];
+const HR_PATTERNS = ["human resources", "hr ", "people partner", "people & culture"];
+const LEADER_PATTERNS = ["head of", "director", "vp ", "vice president", "chief", "lead ", "manager"];
+const TARGET_FIELDS = ["Technical Writing & Documentation", "Content & Copywriting", "Requirements & Business Analysis"];
+
+/** Find and rank connections at a company for a warm-intro / referral ask. */
+export function rankCompanyContacts(contacts: Contact[], companyQuery: string): RankedContact[] {
+  const query = companyQuery.trim().toLowerCase();
+  if (!query) return [];
+
+  const matches = contacts.filter(
+    (contact) =>
+      contact.company.toLowerCase().includes(query) ||
+      contact.position.toLowerCase().includes(query),
+  );
+
+  return matches
+    .map((contact) => {
+      const position = ` ${contact.position.toLowerCase()} `;
+      let score = 10;
+      let reason = "Works at the company — good for an informal insider view.";
+      let askSuggestion = `Ask what it's like inside ${contact.company || companyQuery} and who owns documentation/content work.`;
+
+      if (RECRUITER_PATTERNS.some((p) => position.includes(p))) {
+        score = 100;
+        reason = "Recruiter / talent — can route your CV directly to hiring managers.";
+        askSuggestion = "Ask about open technical writing & content roles and whether contract engagements go via a preferred supplier.";
+      } else if (HR_PATTERNS.some((p) => position.includes(p))) {
+        score = 85;
+        reason = "HR / people team — knows the hiring process and internal referral scheme.";
+        askSuggestion = "Ask how contractors are onboarded and who to send a speculative CV to.";
+      } else if (TARGET_FIELDS.includes(contact.field)) {
+        score = 80;
+        reason = "Same field as you — closest peer, best referral quality.";
+        askSuggestion = "Ask how their documentation/content team is structured and whether they take freelancers.";
+        if (LEADER_PATTERNS.some((p) => position.includes(p))) {
+          score = 95;
+          reason = "Senior in your own field — likely the hiring manager or close to one.";
+          askSuggestion = "Ask directly whether they have upcoming contract needs for docs/content.";
+        }
+      } else if (LEADER_PATTERNS.some((p) => position.includes(p))) {
+        score = 60;
+        reason = "Senior stakeholder — can point you to the right team lead.";
+        askSuggestion = "Ask for an introduction to whoever runs documentation, regulatory writing or content.";
+      } else if (contact.field === "Product & Project Management" || contact.field === "Engineering & IT") {
+        score = 45;
+        reason = "Project / engineering side — these teams usually commission technical writers.";
+        askSuggestion = "Ask whether their projects budget for external documentation support.";
+      }
+
+      return { ...contact, score, reason, askSuggestion };
+    })
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+}
+
