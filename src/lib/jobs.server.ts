@@ -28,18 +28,18 @@ const REGION_PATTERNS: Array<{ label: string; pattern: RegExp; target: boolean }
   {
     label: "Switzerland",
     pattern:
-      /switzerland|swiss|zurich|zürich|geneva|genève|genf|basel|bern|lausanne|lugano|\bch\b/i,
+      /switzerland|swiss|zurich|zürich|geneva|genève|genf|basel|bern|lausanne/i,
     target: true,
   },
-  { label: "France", pattern: /france|paris|lyon|marseille|\bfr\b/i, target: true },
-  { label: "Italy", pattern: /italy|italia|milan|milano|roma\b|rome|turin|torino|\bit\b/i, target: true },
-  { label: "Finland", pattern: /finland|helsinki|tampere|\bfi\b/i, target: true },
+  { label: "France", pattern: /france|paris|lyon|marseille|toulouse|nantes/i, target: true },
+  { label: "Italy", pattern: /italy|italia|milan|milano|roma\b|rome|turin|torino|bologna/i, target: true },
+  { label: "Finland", pattern: /finland|helsinki|tampere|helsingfors/i, target: true },
   {
     label: "Sweden",
-    pattern: /sweden|stockholm|gothenburg|göteborg|malmö|\bse\b/i,
+    pattern: /sweden|stockholm|gothenburg|göteborg|malmö|malmoe/i,
     target: true,
   },
-  { label: "Denmark", pattern: /denmark|copenhagen|aarhus|københavn|\bdk\b/i, target: true },
+  { label: "Denmark", pattern: /denmark|copenhagen|aarhus|københavn|odense/i, target: true },
   {
     label: "UK",
     pattern:
