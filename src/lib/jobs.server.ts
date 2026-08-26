@@ -188,6 +188,8 @@ async function fetchRemoteOk(keywords: string[]): Promise<Job[]> {
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -247,10 +249,12 @@ async function fetchJobicy(keywords: string[]): Promise<Job[]> {
       location: entry.jobGeo || "Remote",
       url: entry.url!,
       source: "Jobicy",
-      tags: (entry.jobIndustry ?? []).slice(0, 4),
+      tags: [...(entry.jobIndustry ?? []), ...jobTypes].slice(0, 5),
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -305,6 +309,8 @@ async function fetchHimalayas(keywords: string[]): Promise<Job[]> {
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -349,10 +355,12 @@ async function fetchArbeitnow(keywords: string[]): Promise<Job[]> {
       location: entry.remote ? `${entry.location} (Remote)` : entry.location,
       url: entry.url,
       source: "Arbeitnow",
-      tags: (entry.tags ?? []).slice(0, 4),
+      tags: [...(entry.tags ?? []), ...jobTypes].slice(0, 5),
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -386,9 +394,20 @@ export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
     return true;
   });
 
-  unique.sort(
+  const eligible: Job[] = [];
+  for (const job of unique) {
+    const classification = classifyJob(job.title, job.location, job.tags);
+    if (!classification.eligible) continue;
+    eligible.push({
+      ...job,
+      employmentType: classification.employmentType,
+      region: classification.region,
+    });
+  }
+
+  eligible.sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
 
-  return unique.slice(0, 120);
+  return eligible.slice(0, 120);
 }
