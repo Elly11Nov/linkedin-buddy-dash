@@ -192,8 +192,9 @@ function Dashboard() {
               {profile ? `Good to see you, ${profile.givenName}.` : "Your job radar"}
             </h1>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Scanning live job boards for new roles matching your watchlist. Fresh postings from the
-              last 48 hours are flagged as new.
+              Scanning live job boards for contract & freelance roles in CH, FR, IT, FI, SE, DK and
+              the UK — plus permanent roles in Switzerland. Fresh postings from the last 48 hours
+              are flagged as new.
             </p>
           </div>
           <button
@@ -369,6 +370,17 @@ function JobCard({ job }: { job: Job }) {
           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-secondary-foreground">
             {job.source}
           </span>
+          {(job.employmentType !== "unspecified" || job.region) && (
+            <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {job.employmentType === "contract"
+                ? "Contract"
+                : job.employmentType === "permanent"
+                  ? "Permanent"
+                  : ""}
+              {job.employmentType !== "unspecified" && job.region ? " · " : ""}
+              {job.region ?? ""}
+            </span>
+          )}
           {job.isNew && (
             <span className="rounded-full bg-signal px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-signal-foreground">
               New

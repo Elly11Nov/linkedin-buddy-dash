@@ -1,6 +1,93 @@
-import type { Job } from "./jobs.types";
+import type { EmploymentType, Job } from "./jobs.types";
 
 const NEW_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+
+// ---------- Eligibility rules (Elena's search criteria) ----------
+// Contract/freelance roles: CH, FR, IT, FI, SE, DK, UK (or remote open to them).
+// Permanent roles: Switzerland only (worldwide-remote counts, it hires in CH).
+
+const CONTRACT_SIGNALS = [
+  /\bcontract(or|ing)?\b/i,
+  /\bfreelanc/i,
+  /\binterim\b/i,
+  /\btemporary\b/i,
+  /\bfixed[- ]term\b/i,
+  /\bcdd\b/i,
+];
+
+const PERMANENT_SIGNALS = [
+  /\bpermanent\b/i,
+  /\bfull[- ]?time\b/i,
+  /\bcdi\b/i,
+  /unbefristet/i,
+  /festanstellung/i,
+  /tempo indeterminato/i,
+];
+
+const REGION_PATTERNS: Array<{ label: string; pattern: RegExp; target: boolean }> = [
+  {
+    label: "Switzerland",
+    pattern:
+      /switzerland|swiss|zurich|zürich|geneva|genève|genf|basel|bern|lausanne/i,
+    target: true,
+  },
+  { label: "France", pattern: /france|paris|lyon|marseille|toulouse|nantes/i, target: true },
+  { label: "Italy", pattern: /italy|italia|milan|milano|roma\b|rome|turin|torino|bologna/i, target: true },
+  { label: "Finland", pattern: /finland|helsinki|tampere|helsingfors/i, target: true },
+  {
+    label: "Sweden",
+    pattern: /sweden|stockholm|gothenburg|göteborg|malmö|malmoe/i,
+    target: true,
+  },
+  { label: "Denmark", pattern: /denmark|copenhagen|aarhus|københavn|odense/i, target: true },
+  {
+    label: "UK",
+    pattern:
+      /united kingdom|\buk\b|\bu\.k\.\b|london|england|britain|manchester|edinburgh|bristol|leeds/i,
+    target: true,
+  },
+];
+
+const WORLDWIDE_PATTERN =
+  /worldwide|anywhere|global|\bemea\b|\beurope(an)?\b|\beu\b|remote[- ]first|work from anywhere/i;
+
+interface Classification {
+  employmentType: EmploymentType;
+  region: string | null;
+  eligible: boolean;
+}
+
+function classifyJob(title: string, location: string, tags: string[]): Classification {
+  const haystack = [title, location, ...tags].join(" ");
+
+  const isContract = CONTRACT_SIGNALS.some((pattern) => pattern.test(haystack));
+  const isPermanent = PERMANENT_SIGNALS.some((pattern) => pattern.test(haystack));
+  const employmentType: EmploymentType = isContract
+    ? "contract"
+    : isPermanent
+      ? "permanent"
+      : "unspecified";
+
+  const locationHaystack = [location, ...tags].join(" ");
+  const regionHit = REGION_PATTERNS.find(({ pattern }) => pattern.test(locationHaystack));
+  const worldwide = WORLDWIDE_PATTERN.test(locationHaystack);
+  const region = regionHit?.label ?? (worldwide ? "Worldwide / EMEA" : null);
+
+  // Permanent roles: Switzerland only (worldwide-remote hires in CH too).
+  if (employmentType === "permanent") {
+    return {
+      employmentType,
+      region,
+      eligible: regionHit?.label === "Switzerland" || worldwide,
+    };
+  }
+  // Contract/freelance and unspecified: target countries or remote open to them.
+  return {
+    employmentType,
+    region,
+    eligible: Boolean(regionHit?.target) || worldwide,
+  };
+}
 
 // Extra search terms for well-known watchlist keywords so phrasing variants
 // ("Technical Writer" vs "Technical Writing") still match.
@@ -101,6 +188,8 @@ async function fetchRemoteOk(keywords: string[]): Promise<Job[]> {
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -160,10 +249,12 @@ async function fetchJobicy(keywords: string[]): Promise<Job[]> {
       location: entry.jobGeo || "Remote",
       url: entry.url!,
       source: "Jobicy",
-      tags: (entry.jobIndustry ?? []).slice(0, 4),
+      tags: [...(entry.jobIndustry ?? []), ...jobTypes].slice(0, 5),
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -218,6 +309,8 @@ async function fetchHimalayas(keywords: string[]): Promise<Job[]> {
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -262,10 +355,12 @@ async function fetchArbeitnow(keywords: string[]): Promise<Job[]> {
       location: entry.remote ? `${entry.location} (Remote)` : entry.location,
       url: entry.url,
       source: "Arbeitnow",
-      tags: (entry.tags ?? []).slice(0, 4),
+      tags: [...(entry.tags ?? []), ...jobTypes].slice(0, 5),
       publishedAt,
       matchedKeywords: matches,
       isNew: isFresh(publishedAt),
+      employmentType: "unspecified",
+      region: null,
     });
   }
   return jobs;
@@ -299,9 +394,20 @@ export async function aggregateJobs(keywords: string[]): Promise<Job[]> {
     return true;
   });
 
-  unique.sort(
+  const eligible: Job[] = [];
+  for (const job of unique) {
+    const classification = classifyJob(job.title, job.location, job.tags);
+    if (!classification.eligible) continue;
+    eligible.push({
+      ...job,
+      employmentType: classification.employmentType,
+      region: classification.region,
+    });
+  }
+
+  eligible.sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
 
-  return unique.slice(0, 120);
+  return eligible.slice(0, 120);
 }
