@@ -1,26 +1,40 @@
 # LinkedIn Insights
 
-@connector:linkedin:"LinkedIn" Dashboard
+## LinkedIn Connection Intelligence for Job Search
 
-This project was built with [Lovable](https://lovable.dev).
+An AI-assisted prototype that helps job seekers turn their LinkedIn network into a practical job-search resource.
 
-**Live app**: https://linkedin-buddy-dash.lovable.app
+I imported a CSV export of my LinkedIn connections and built a dashboard to answer questions such as:
 
-## Build with Lovable
+* Who do I know at companies I'm interested in?
+* Where are my connections located?
+* Which contacts might be relevant to a particular job search?
+* Who could potentially help with an introduction, referral or market insight?
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/504ce9b0-346a-4e1d-8c14-c8ffd96c740c).
+The goal is to move beyond simply having a large LinkedIn network and make that network **useful and actionable** during a job search.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Key capabilities
 
-## Development
+* Imports LinkedIn connections from CSV
+* Organises contacts by company, location and other available attributes
+* Helps identify connections relevant to target companies and opportunities
+* Makes it easier to discover potential referral and networking paths
+* Turns a static contact export into an interactive job-search tool
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## My role
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+Product concept, problem definition, requirements, information architecture, UX/content design, data workflow design and AI-assisted application development.
+
+## Technology
+
+Built with Lovable using a modern web application stack. The prototype works with imported LinkedIn connection data and does not require direct access to LinkedIn's platform.
+
+## Why I built it
+
+Job searching isn't only about finding vacancies. Often the most valuable resource is **who you already know**.
+
+This prototype explores how AI and lightweight data tools can help turn an existing professional network into actionable intelligence.
+
+## Live prototype
+
+[View LinkedIn Insights]
