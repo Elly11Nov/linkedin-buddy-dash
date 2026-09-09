@@ -27,14 +27,17 @@ Product concept, problem definition, requirements, information architecture, UX/
 
 ## Technology
 
-Built with Lovable using a modern web application stack. The prototype works with imported LinkedIn connection data and does not require direct access to LinkedIn's platform.
+Built with Lovable using a modern web application stack.
+
+The prototype works with imported LinkedIn connection data and does not require direct access to LinkedIn's platform.
 
 ## Why I built it
 
-Job searching isn't only about finding vacancies. Often the most valuable resource is **who you already know**.
+Job searching isn't only about finding vacancies. Often, one of the most valuable resources is **who you already know**.
 
-This prototype explores how AI and lightweight data tools can help turn an existing professional network into actionable intelligence.
+This prototype explores how AI and lightweight data tools can turn an existing professional network into actionable intelligence for job search and networking.
 
 ## Live prototype
 
-[View LinkedIn Insights]
+**[View LinkedIn Insights](#)**
+
