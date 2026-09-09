@@ -26,10 +26,18 @@ The goal is to move beyond simply having a large LinkedIn network and make that 
 Product concept, problem definition, requirements, information architecture, UX/content design, data workflow design and AI-assisted application development.
 
 ## Technology
+React 19
+TypeScript
+TanStack Start and TanStack Router
+Vite
+Tailwind CSS
+React Hook Form
+Zod
+Recharts
+Radix UI
+Lovable for AI-assisted application development
 
-Built with Lovable using a modern web application stack.
-
-The prototype works with imported LinkedIn connection data and does not require direct access to LinkedIn's platform.
+The prototype works with imported LinkedIn connection data in CSV format and does not require direct access to LinkedIn's platform.
 
 ## Why I built it
 
