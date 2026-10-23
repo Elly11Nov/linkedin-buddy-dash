@@ -6,7 +6,7 @@ interface Props {
   contacts: Contact[] | undefined;
 }
 
-const QUICK_COMPANIES = ["Roche", "Novartis", "Nestlé", "Lonza", "Johnson & Johnson"];
+const QUICK_COMPANIES = ["Roche", "Novartis", "Nestlé", "Lonza", "Johnson & Johnson", "Costa Crociere"];
 
 export function CompanyInsiders({ contacts }: Props) {
   const [query, setQuery] = useState("Roche");
