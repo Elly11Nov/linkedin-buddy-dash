@@ -21,14 +21,23 @@ export function CompanyInsiders({ contacts }: Props) {
           <Building2 className="h-4 w-4 text-muted-foreground" />
           <h2 className="font-display text-sm font-semibold">Who to contact at a company</h2>
         </div>
-        <a
-          href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(query)}&network=%5B%22F%22%5D`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-        >
-          Search on LinkedIn <ExternalLink className="h-3 w-3" />
-        </a>
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { label: "1st", code: "F" },
+            { label: "2nd", code: "S" },
+            { label: "3rd+", code: "O" },
+          ].map((d) => (
+            <a
+              key={d.code}
+              href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(query)}&network=%5B%22${d.code}%22%5D`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold text-primary hover:bg-accent"
+            >
+              {d.label} connections <ExternalLink className="h-3 w-3" />
+            </a>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-2 rounded-xl border bg-background px-3 py-2">
